@@ -1,0 +1,53 @@
+services:
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: exam-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - DOCKER_ENV=true
+      - SECRET_KEY=dev-secret-key-for-docker
+      - JWT_SECRET_KEY=jwt-secret-key-for-docker
+      - DATABASE_URL=sqlite:///exam.db
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+    volumes:
+      - ./backend:/app
+      - backend-data:/app/instance
+    command: python run.py
+    networks:
+      - exam-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: exam-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5000/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - backend
+    networks:
+      - exam-network
+
+volumes:
+  backend-data:
+
+networks:
+  exam-network:
+    driver: bridge

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API连接测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #409EFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #66b1ff;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .success {
+            color: #67C23A;
+        }
+
+        .error {
+            color: #F56C6C;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>API连接测试工具</h1>
+
+    <div class="test-section">
+        <h2>测试1: 健康检查</h2>
+        <button onclick="testHealth('http://localhost:5000')">测试 localhost:5000</button>
+        <button onclick="testHealth('http://127.0.0.1:5000')">测试 127.0.0.1:5000</button>
+        <div id="health-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>测试2: 登录</h2>
+        <button onclick="testLogin('http://localhost:5000')">测试 localhost:5000</button>
+        <button onclick="testLogin('http://127.0.0.1:5000')">测试 127.0.0.1:5000</button>
+        <div id="login-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>测试3: 开始练习</h2>
+        <button onclick="testPractice('http://localhost:5000')">测试 localhost:5000</button>
+        <button onclick="testPractice('http://127.0.0.1:5000')">测试 127.0.0.1:5000</button>
+        <div id="practice-result" class="result"></div>
+    </div>
+
+    <script>
+        let currentToken = null;
+
+        async function testHealth(baseUrl) {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = '测试中...';
+
+            try {
+                const response = await fetch(`${baseUrl}/health`);
+                const data = await response.json();
+                resultDiv.innerHTML = `<span class="success">✓ 成功</span>\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ 失败</span>\n错误: ${error.message}`;
+            }
+        }
+
+        async function testLogin(baseUrl) {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.innerHTML = '测试中...';
+
+            try {
+                const response = await fetch(`${baseUrl}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data.access_token) {
+                    currentToken = data.data.access_token;
+                    resultDiv.innerHTML = `<span class="success">✓ 成功</span>\n已获取Token\n用户: ${data.data.user.username}`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">✗ 失败</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ 失败</span>\n错误: ${error.message}`;
+            }
+        }
+
+        async function testPractice(baseUrl) {
+            const resultDiv = document.getElementById('practice-result');
+
+            if (!currentToken) {
+                resultDiv.innerHTML = '<span class="error">请先执行登录测试获取Token</span>';
+                return;
+            }
+
+            resultDiv.innerHTML = '测试中...';
+
+            try {
+                const response = await fetch(`${baseUrl}/api/practice/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify({
+                        count: 10,
+                        exam_type: '',
+                        question_type: ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const count = data.data.questions.length;
+                    resultDiv.innerHTML = `<span class="success">✓ 成功</span>\n获取到 ${count} 道题目\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">✗ 失败</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ 失败</span>\n错误: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+
+</html>
