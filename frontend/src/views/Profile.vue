@@ -138,6 +138,79 @@
           </el-form>
         </el-card>
 
+        <!-- 游戏化 -->
+        <el-card v-show="activeMenu === 'gamification'" class="content-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">
+                <el-icon><Trophy /></el-icon>
+                游戏化系统
+              </span>
+              <el-button type="primary" @click="$router.push('/achievements')">
+                查看全部成就
+                <el-icon><ArrowRight /></el-icon>
+              </el-button>
+            </div>
+          </template>
+
+          <!-- 积分和等级展示 -->
+          <div class="gamification-section">
+            <PointsDisplay ref="pointsDisplayRef" />
+          </div>
+
+          <!-- 最近获得的成就 -->
+          <div class="achievements-section">
+            <div class="section-header">
+              <h3 class="section-title">最近获得的成就</h3>
+              <el-button text @click="$router.push('/achievements')">
+                查看全部
+                <el-icon><ArrowRight /></el-icon>
+              </el-button>
+            </div>
+
+            <div v-if="achievements.length === 0" class="empty-achievements">
+              <el-icon class="empty-icon"><Trophy /></el-icon>
+              <p>还没有获得任何成就</p>
+              <el-button type="primary" @click="$router.push('/achievements')">
+                去解锁成就
+              </el-button>
+            </div>
+
+            <div v-else class="achievements-list">
+              <AchievementCard 
+                v-for="achievement in achievements" 
+                :key="achievement.id"
+                :achievement="achievement"
+              />
+            </div>
+          </div>
+
+          <!-- 快速入口 -->
+          <div class="quick-links">
+            <div class="quick-link-card" @click="$router.push('/daily-tasks')">
+              <div class="quick-link-icon tasks">
+                <el-icon><CircleCheck /></el-icon>
+              </div>
+              <div class="quick-link-content">
+                <div class="quick-link-title">每日任务</div>
+                <div class="quick-link-desc">完成任务获取积分</div>
+              </div>
+              <el-icon class="quick-link-arrow"><ArrowRight /></el-icon>
+            </div>
+
+            <div class="quick-link-card" @click="$router.push('/achievements')">
+              <div class="quick-link-icon achievements">
+                <el-icon><Trophy /></el-icon>
+              </div>
+              <div class="quick-link-content">
+                <div class="quick-link-title">成就系统</div>
+                <div class="quick-link-desc">解锁更多成就</div>
+              </div>
+              <el-icon class="quick-link-arrow"><ArrowRight /></el-icon>
+            </div>
+          </div>
+        </el-card>
+
         <!-- 安全设置 -->
         <el-card v-show="activeMenu === 'security'" class="content-card" shadow="never">
           <template #header>
@@ -270,16 +343,20 @@ import { ElMessage } from 'element-plus'
 import {
   Camera, Calendar, Edit, ArrowRight, EditPen, CircleCheck,
   Document, Collection, User, Lock, Clock, UserFilled, Avatar,
-  Message, Key, DataAnalysis
+  Message, Key, DataAnalysis, Trophy
 } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { updateProfile, changePassword } from '../api/auth'
 import { getOverview } from '../api/statistics'
+import PointsDisplay from '../components/PointsDisplay.vue'
+import AchievementCard from '../components/AchievementCard.vue'
+import { getUserAchievements } from '../api/achievements'
 
 const userStore = useUserStore()
 
 const menuItems = [
   { key: 'basic', label: '基本信息', icon: markRaw(User) },
+  { key: 'gamification', label: '游戏化', icon: markRaw(Trophy) },
   { key: 'security', label: '安全设置', icon: markRaw(Lock) },
   { key: 'records', label: '学习记录', icon: markRaw(DataAnalysis) }
 ]
@@ -292,6 +369,8 @@ const showAvatarDialog = ref(false)
 const passwordLoading = ref(false)
 const avatarUrl = ref('')
 const stats = ref({})
+const achievements = ref([])
+const pointsDisplayRef = ref(null)
 
 const formRef = ref(null)
 const passwordFormRef = ref(null)
@@ -408,12 +487,25 @@ async function loadStats() {
   }
 }
 
+async function loadAchievements() {
+  try {
+    const response = await getUserAchievements({ status: 'earned' })
+    if (response.data.success) {
+      // 只显示最近获得的5个成就
+      achievements.value = response.data.data.slice(0, 5)
+    }
+  } catch (error) {
+    console.error('加载成就失败:', error)
+  }
+}
+
 onMounted(async () => {
   if (!userStore.userInfo) {
     try { await userStore.fetchUserInfo() } catch (error) { console.error('获取用户信息失败:', error) }
   }
   avatarUrl.value = userStore.userInfo?.avatar || ''
   loadStats()
+  loadAchievements()
 })
 </script>
 
@@ -739,6 +831,126 @@ onMounted(async () => {
   max-width: 500px;
 }
 
+/* 游戏化部分 */
+.gamification-section {
+  margin-bottom: 32px;
+}
+
+.achievements-section {
+  margin-bottom: 32px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-achievements {
+  text-align: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-achievements p {
+  font-size: 16px;
+  margin: 0 0 20px 0;
+}
+
+.achievements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quick-links {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.quick-link-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.quick-link-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(64, 158, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+}
+
+.quick-link-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+}
+
+.quick-link-icon.tasks {
+  background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+}
+
+.quick-link-icon.achievements {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #303133;
+}
+
+.quick-link-content {
+  flex: 1;
+}
+
+.quick-link-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.quick-link-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.quick-link-arrow {
+  color: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s;
+}
+
+.quick-link-card:hover .quick-link-arrow {
+  color: #409eff;
+  transform: translateX(4px);
+}
+
 /* 安全设置 */
 .security-list {
   display: flex;
@@ -874,6 +1086,10 @@ onMounted(async () => {
   
   .records-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .quick-links {
+    grid-template-columns: 1fr;
   }
 }
 

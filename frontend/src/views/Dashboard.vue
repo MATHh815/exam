@@ -90,6 +90,66 @@
       </div>
     </div>
 
+    <!-- 新增图表区域 -->
+    <div class="charts-grid">
+      <!-- 今日日程 -->
+      <TodayScheduleCard />
+
+      <!-- 今日学习进度 -->
+      <el-card class="chart-card" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span class="card-title">今日学习进度</span>
+          </div>
+        </template>
+        <ProgressRing 
+          :value="overview.practice_count || 0" 
+          :total="50" 
+          label="今日目标"
+        />
+      </el-card>
+
+      <!-- 正确率趋势 -->
+      <el-card class="chart-card" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span class="card-title">正确率趋势</span>
+          </div>
+        </template>
+        <AccuracyTrend :data="trendData" :days="7" />
+      </el-card>
+
+      <!-- 今日目标 -->
+      <el-card class="chart-card" shadow="hover">
+        <DailyGoals :goals="dailyGoals" />
+      </el-card>
+
+      <!-- 科目掌握度 -->
+      <el-card class="chart-card" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span class="card-title">科目掌握度</span>
+          </div>
+        </template>
+        <SubjectRadar :data="subjectData" />
+      </el-card>
+    </div>
+
+    <!-- 学习日历 -->
+    <el-card class="calendar-card" shadow="hover">
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">学习日历</span>
+          <span class="card-subtitle">最近90天学习记录</span>
+        </div>
+      </template>
+      <StudyCalendar 
+        :data="calendarData" 
+        :days="90"
+        @day-click="handleDayClick"
+      />
+    </el-card>
+
     <!-- 数据概览和最近活动 -->
     <div class="dashboard-grid">
       <!-- 学习数据卡片 -->
@@ -250,6 +310,12 @@ import { useUserStore } from '../stores/user'
 import { getOverview } from '../api/statistics'
 import { getPracticeHistory, getWrongBook, startPractice as startPracticeApi } from '../api/practice'
 import { getExamHistory } from '../api/exams'
+import ProgressRing from '../components/charts/ProgressRing.vue'
+import AccuracyTrend from '../components/charts/AccuracyTrend.vue'
+import StudyCalendar from '../components/StudyCalendar.vue'
+import SubjectRadar from '../components/charts/SubjectRadar.vue'
+import DailyGoals from '../components/DailyGoals.vue'
+import TodayScheduleCard from '../components/TodayScheduleCard.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -285,6 +351,86 @@ const practiceForm = ref({
   question_type: '',
   count: 10
 })
+
+// 新组件数据
+const trendData = ref([])
+const calendarData = ref([])
+const subjectData = ref([])
+const dailyGoals = ref([])
+
+// 生成模拟数据
+function generateMockData() {
+  // 趋势数据 - 最近7天
+  const today = new Date()
+  trendData.value = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(today)
+    date.setDate(date.getDate() - (6 - i))
+    return {
+      date: `${date.getMonth() + 1}-${date.getDate()}`,
+      accuracy: 0.75 + Math.random() * 0.2
+    }
+  })
+
+  // 日历数据 - 最近90天
+  calendarData.value = Array.from({ length: 90 }, (_, i) => {
+    const date = new Date(today)
+    date.setDate(date.getDate() - (89 - i))
+    const hasActivity = Math.random() > 0.3
+    return {
+      date: date.toISOString().split('T')[0],
+      count: hasActivity ? Math.floor(Math.random() * 80) + 10 : 0,
+      duration: hasActivity ? Math.floor(Math.random() * 180) + 30 : 0,
+      accuracy: hasActivity ? 0.7 + Math.random() * 0.3 : 0
+    }
+  })
+
+  // 科目数据
+  subjectData.value = [
+    { value: 75 + Math.random() * 20 },  // 行测
+    { value: 70 + Math.random() * 20 },  // 申论
+    { value: 80 + Math.random() * 15 },  // 数学
+    { value: 75 + Math.random() * 20 },  // 英语
+    { value: 65 + Math.random() * 25 }   // 专业课
+  ]
+
+  // 今日目标
+  const practiceProgress = overview.value.practice_count || 0
+  dailyGoals.value = [
+    {
+      title: '练习题目',
+      current: practiceProgress,
+      target: 50,
+      unit: '题',
+      icon: EditPen,
+      color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      completed: practiceProgress >= 50
+    },
+    {
+      title: '学习时长',
+      current: overview.value.study_duration || 0,
+      target: 120,
+      unit: '分钟',
+      icon: Clock,
+      color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      completed: (overview.value.study_duration || 0) >= 120
+    },
+    {
+      title: '正确率',
+      current: Math.round((overview.value.accuracy || 0) * 100),
+      target: 80,
+      unit: '%',
+      icon: TrophyBase,
+      color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      completed: (overview.value.accuracy || 0) >= 0.8
+    }
+  ]
+}
+
+function handleDayClick(day) {
+  if (day.count > 0) {
+    ElMessage.info(`${day.date}: 练习 ${day.count} 题，学习 ${day.duration} 分钟，正确率 ${(day.accuracy * 100).toFixed(0)}%`)
+  }
+}
 
 function formatStudyTime(minutes) {
   if (!minutes) return '0分'
@@ -419,6 +565,10 @@ function goToStatistics() {
   router.push('/statistics')
 }
 
+function goToAIAnalysis() {
+  ElMessage.info('AI智能分析功能即将上线')
+}
+
 onMounted(async () => {
   if (userStore.isLoggedIn && !userStore.userInfo) {
     try {
@@ -439,9 +589,12 @@ onMounted(async () => {
     ElMessage.success('练习数据已更新')
   }
 
-  loadOverview()
+  await loadOverview()
   loadWrongBookCount()
   loadRecentActivities()
+  
+  // 生成图表数据
+  generateMockData()
 })
 </script>
 
@@ -664,6 +817,28 @@ onMounted(async () => {
   color: #667eea;
 }
 
+/* 图表网格 */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  min-height: 320px;
+}
+
+.calendar-card {
+  margin-bottom: 24px;
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: 8px;
+}
+
 /* 数据网格 */
 .dashboard-grid {
   display: grid;
@@ -824,6 +999,10 @@ onMounted(async () => {
 }
 
 @media (max-width: 992px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
   .dashboard-grid {
     grid-template-columns: 1fr;
   }

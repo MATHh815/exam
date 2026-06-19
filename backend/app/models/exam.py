@@ -347,7 +347,7 @@ class ExamResult(db.Model):
     details = db.Column(db.JSON)
     
     # 创建时间
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     
     # 关系
     session = db.relationship('ExamSession', backref='result')

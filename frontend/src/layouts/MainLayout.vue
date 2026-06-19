@@ -52,6 +52,40 @@
             </el-menu-item>
           </el-sub-menu>
 
+          <el-sub-menu index="tools">
+            <template #title>
+              <el-icon><Notebook /></el-icon>
+              <span>学习工具</span>
+            </template>
+            <el-menu-item index="/study-plans">
+              <el-icon><Calendar /></el-icon>
+              <span>学习计划</span>
+            </el-menu-item>
+            <el-menu-item index="/notes">
+              <el-icon><Edit /></el-icon>
+              <span>我的笔记</span>
+            </el-menu-item>
+            <el-menu-item index="/bookmarks">
+              <el-icon><Star /></el-icon>
+              <span>我的收藏</span>
+            </el-menu-item>
+          </el-sub-menu>
+
+          <el-sub-menu index="gamification">
+            <template #title>
+              <el-icon><Trophy /></el-icon>
+              <span>游戏化</span>
+            </template>
+            <el-menu-item index="/achievements">
+              <el-icon><Medal /></el-icon>
+              <span>成就系统</span>
+            </el-menu-item>
+            <el-menu-item index="/daily-tasks">
+              <el-icon><Checked /></el-icon>
+              <span>每日任务</span>
+            </el-menu-item>
+          </el-sub-menu>
+
           <el-menu-item index="/statistics">
             <el-icon><TrendCharts /></el-icon>
             <template #title>学习统计</template>
@@ -188,7 +222,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Reading, HomeFilled, EditPen, Document, Collection, MagicStick,
   TrendCharts, Setting, List, Tickets, Fold, Expand,
-  Search, FullScreen, Bell, ArrowDown, User, SwitchButton, Clock, School
+  Search, FullScreen, Bell, ArrowDown, User, SwitchButton, Clock, School,
+  Notebook, Calendar, Edit, Star, Trophy, Medal, Checked
 } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import StarryBackground from '../components/StarryBackground.vue'
@@ -215,6 +250,11 @@ const currentPageTitle = computed(() => {
     '/exams': '模拟考试',
     '/exam-history': '考试记录',
     '/wrong-book': '错题本',
+    '/study-plans': '学习计划',
+    '/notes': '我的笔记',
+    '/bookmarks': '我的收藏',
+    '/achievements': '成就系统',
+    '/daily-tasks': '每日任务',
     '/statistics': '学习统计',
     '/ai-analysis': 'AI智能分析',
     '/profile': '个人中心',

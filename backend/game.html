@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧮 乘法口诀连连看</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5e6d3 0%, #e8d4c4 30%, #d4c4b0 60%, #c9b896 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            font-size: 20px;
+            animation: floatSlow 18s infinite;
+            opacity: 0.5;
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.5; }
+            90% { opacity: 0.5; }
+            100% { transform: translateY(-100vh) rotate(180deg); opacity: 0; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .title {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .title h1 {
+            font-size: 2rem;
+            background: linear-gradient(45deg, #8b7355, #a08060, #c9a86c, #8b7355);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient 4s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .mode-btn {
+            padding: 8px 22px;
+            font-size: 0.95rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(145deg, #fff9f0, #f0e6d8);
+            color: #8b7355;
+            box-shadow: 0 4px 15px rgba(139, 115, 85, 0.15);
+            font-weight: 500;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 115, 85, 0.2);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(145deg, #c9a86c, #a08060);
+            color: white;
+            box-shadow: 0 4px 20px rgba(139, 115, 85, 0.3);
+        }
+
+        .top-panel {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            flex-wrap: wrap;
+            box-shadow: 0 4px 15px rgba(139, 115, 85, 0.1);
+        }
+
+        .timer {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #8b7355;
+        }
+
+        .timer.warning {
+            color: #c0392b;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0.5; }
+        }
+
+        .progress-info {
+            color: #8b7355;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .game-area {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .player-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .player-header {
+            text-align: center;
+            margin-bottom: 8px;
+            padding: 8px 25px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(139, 115, 85, 0.1);
+        }
+
+        .player-header.active {
+            background: linear-gradient(145deg, rgba(201,168,108,0.3), rgba(160,128,96,0.2));
+            box-shadow: 0 0 20px rgba(201, 168, 108, 0.3);
+        }
+
+        .player-header h3 {
+            color: #8b7355;
+            font-size: 1rem;
+            margin-bottom: 3px;
+        }
+
+        .player-header .score {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .player1 .score { color: #c9a86c; }
+        .player2 .score { color: #7eb8da; }
+
+        .combo-text {
+            font-size: 1rem;
+            color: #c9a86c;
+            min-height: 20px;
+            margin-top: 3px;
+            font-weight: bold;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(139, 115, 85, 0.12);
+        }
+
+        .cell {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(145deg, #b8d4e8, #9fc5db);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(159, 197, 219, 0.4);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+        }
+
+        .cell:hover:not(.selected):not(.matched) {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 6px 20px rgba(159, 197, 219, 0.5);
+        }
+
+        .cell.selected {
+            background: linear-gradient(145deg, #c9a86c, #a08060);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(201, 168, 108, 0.5);
+        }
+
+        .cell.matched {
+            animation: matchAnim 0.4s ease forwards;
+        }
+
+        @keyframes matchAnim {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .cell.appear {
+            animation: appearAnim 0.35s ease forwards;
+        }
+
+        @keyframes appearAnim {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.08); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .cell.wrong {
+            animation: shake 0.35s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); background: linear-gradient(145deg, #e07a5f, #c0392b); }
+            75% { transform: translateX(6px); background: linear-gradient(145deg, #e07a5f, #c0392b); }
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .control-btn {
+            padding: 10px 22px;
+            font-size: 0.95rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(145deg, #c9a86c, #a08060);
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 115, 85, 0.25);
+            font-weight: 500;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 115, 85, 0.35);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, #fff9f0, #f0e6d8);
+            padding: 30px 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(139, 115, 85, 0.25);
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            font-size: 1.6rem;
+            color: #8b7355;
+            margin-bottom: 12px;
+        }
+
+        .modal-content p {
+            color: #8b7355;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .modal-content .control-btn {
+            margin-top: 15px;
+        }
+
+        /* 错题图表样式 */
+        .wrong-chart {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 15px;
+        }
+
+        .wrong-chart h3 {
+            color: #8b7355;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .chart-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-label {
+            width: 60px;
+            font-size: 0.9rem;
+            color: #8b7355;
+            text-align: right;
+        }
+
+        .chart-bar-bg {
+            flex: 1;
+            height: 24px;
+            background: rgba(139, 115, 85, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .chart-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e07a5f, #c0392b);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            min-width: 30px;
+            transition: width 0.5s ease;
+        }
+
+        .chart-bar-fill span {
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .no-wrong {
+            color: #8b7355;
+            padding: 20px;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 700px) {
+            .title h1 { font-size: 1.5rem; }
+            .cell { width: 60px; height: 60px; font-size: 0.95rem; }
+            .game-board { gap: 6px; padding: 10px; }
+            .game-area { gap: 15px; }
+        }
+
+        @media (max-width: 500px) {
+            .cell { width: 55px; height: 55px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <div class="title">
+            <h1>☕ 乘法口诀连连看 ☕</h1>
+        </div>
+
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="setMode('single')">👤 单人模式</button>
+            <button class="mode-btn" onclick="setMode('double')">👥 双人对战</button>
+        </div>
+
+        <div class="top-panel">
+            <div class="timer" id="timer">03:00</div>
+            <div class="progress-info">
+                得分: <span id="topScore">0</span>
+            </div>
+        </div>
+
+        <div class="game-area" id="gameArea"></div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="restartGame()">🔄 重新开始</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">🎉 游戏结束！</h2>
+            <p id="modalMsg1"></p>
+            <p id="modalMsg2"></p>
+            <div id="wrongChartArea"></div>
+            <button class="control-btn" onclick="closeModal()">再来一局</button>
+        </div>
+    </div>
+
+    <script>
+
+        const randomColors = [
+            ['#c9a86c', '#a08060'], ['#b8d4e8', '#9fc5db'], ['#d4a574', '#c08552'],
+            ['#a8c686', '#8fb36d'], ['#e8c8a8', '#d4b08c'], ['#c4a4d4', '#a888bc'],
+            ['#f0c8a8', '#dca87c'], ['#98c4b4', '#7cb09c'], ['#d8b8a8', '#c4a090'],
+            ['#b8c8d8', '#9cb0c4'], ['#e0d0b8', '#ccc0a4'], ['#c8d8c0', '#b4c8a8']
+        ];
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playDropSound() {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.frequency.setValueAtTime(1200, audioContext.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.25, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.2);
+        }
+
+        function playComboSound() {
+            const notes = [700, 900, 1100];
+            notes.forEach((freq, i) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.18, audioContext.currentTime + i * 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.1 + 0.18);
+                osc.start(audioContext.currentTime + i * 0.1);
+                osc.stop(audioContext.currentTime + i * 0.1 + 0.18);
+            });
+        }
+
+        function generateAllPairs() {
+            const pairs = [];
+            for (let i = 2; i <= 9; i++) {
+                for (let j = i; j <= 9; j++) {
+                    pairs.push({ question: `${i}×${j}`, answer: i * j });
+                }
+            }
+            return pairs;
+        }
+
+        let allPairs = [];
+        let remainingPairs = [];
+        let player2RemainingPairs = []; // 玩家2专用题库（每题只出一次）
+        let player2WrongQuestions = {}; // 玩家2错题统计 { "2×3": 1, "4×5": 2 }
+        let gameMode = 'single';
+        let gameTime = 180;
+        let timerInterval = null;
+        let gameEnded = false;
+
+        let players = {
+            1: { cells: [], selectedCell: null, score: 0, combo: 0, isProcessing: false },
+            2: { cells: [], selectedCell: null, score: 0, combo: 0, isProcessing: false }
+        };
+
+        function getRandomColor() {
+            return randomColors[Math.floor(Math.random() * randomColors.length)];
+        }
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function initGame() {
+            allPairs = generateAllPairs();
+            remainingPairs = shuffleArray([...allPairs]);
+            player2RemainingPairs = shuffleArray([...allPairs]); // 玩家2独立题库
+            player2WrongQuestions = {}; // 重置错题
+            gameTime = 180;
+            gameEnded = false;
+
+            players = {
+                1: { cells: [], selectedCell: null, score: 0, combo: 0, isProcessing: false },
+                2: { cells: [], selectedCell: null, score: 0, combo: 0, isProcessing: false }
+            };
+
+            renderGameArea();
+            initPlayerBoard(1);
+            if (gameMode === 'double') {
+                initPlayerBoard(2);
+            }
+
+            updateUI();
+            startTimer();
+        }
+
+        function renderGameArea() {
+            const area = document.getElementById('gameArea');
+            area.innerHTML = '';
+
+            const createPlayerSection = (playerId) => {
+                const section = document.createElement('div');
+                section.className = 'player-section';
+                section.innerHTML = `
+                    <div class="player-header player${playerId} active" id="header${playerId}">
+                        <h3>${playerId === 1 ? '☕' : '🍵'} 玩家${playerId}</h3>
+                        <div class="score" id="score${playerId}">0</div>
+                        <div class="combo-text" id="combo${playerId}"></div>
+                    </div>
+                    <div class="game-board" id="board${playerId}"></div>
+                `;
+                return section;
+            };
+
+            area.appendChild(createPlayerSection(1));
+            if (gameMode === 'double') {
+                area.appendChild(createPlayerSection(2));
+            }
+        }
+
+        function initPlayerBoard(playerId) {
+            const player = players[playerId];
+            player.cells = [];
+
+            // 玩家2使用独立题库
+            const pairSource = playerId === 2 ? player2RemainingPairs : remainingPairs;
+
+            for (let i = 0; i < 8; i++) {
+                if (pairSource.length === 0) break;
+                const pair = pairSource.pop();
+                const pairId = Date.now() + Math.random();
+                player.cells.push({ type: 'question', text: pair.question, pairId, answer: pair.answer });
+                player.cells.push({ type: 'answer', text: String(pair.answer), pairId });
+            }
+
+            shuffleArray(player.cells);
+            renderBoard(playerId);
+        }
+
+        function renderBoard(playerId) {
+            const board = document.getElementById(`board${playerId}`);
+            board.innerHTML = '';
+            const player = players[playerId];
+
+            player.cells.forEach((cell, index) => {
+                const div = document.createElement('div');
+                div.className = 'cell appear';
+                div.textContent = cell ? cell.text : '';
+                div.dataset.index = index;
+                if (!cell) div.style.visibility = 'hidden';
+                div.addEventListener('click', () => handleClick(playerId, index));
+                board.appendChild(div);
+            });
+        }
+
+        function handleClick(playerId, index) {
+            if (gameEnded) return;
+            const player = players[playerId];
+            if (player.isProcessing) return;
+
+            const cellEls = document.querySelectorAll(`#board${playerId} .cell`);
+            const cellEl = cellEls[index];
+            if (!cellEl || !player.cells[index]) return;
+
+            if (player.selectedCell === index) {
+                cellEl.classList.remove('selected');
+                player.selectedCell = null;
+                return;
+            }
+
+            if (player.selectedCell === null) {
+                player.selectedCell = index;
+                cellEl.classList.add('selected');
+            } else {
+                const firstIdx = player.selectedCell;
+                const firstCell = player.cells[firstIdx];
+                const secondCell = player.cells[index];
+                const firstEl = cellEls[firstIdx];
+
+                player.isProcessing = true;
+                cellEl.classList.add('selected');
+
+                setTimeout(() => {
+                    if (firstCell.pairId === secondCell.pairId && firstCell.type !== secondCell.type) {
+                        handleMatch(playerId, firstIdx, index);
+                    } else {
+                        handleMismatch(playerId, firstEl, cellEl, firstCell, secondCell);
+                    }
+                }, 250);
+            }
+        }
+
+        function handleMatch(playerId, idx1, idx2) {
+            const player = players[playerId];
+            const cellEls = document.querySelectorAll(`#board${playerId} .cell`);
+            const el1 = cellEls[idx1];
+            const el2 = cellEls[idx2];
+
+            const color = getRandomColor();
+            el1.style.background = `linear-gradient(145deg, ${color[0]}, ${color[1]})`;
+            el2.style.background = `linear-gradient(145deg, ${color[0]}, ${color[1]})`;
+
+            el1.classList.remove('selected');
+            el2.classList.remove('selected');
+            el1.classList.add('matched');
+            el2.classList.add('matched');
+
+            player.combo++;
+            player.score++;
+
+            if (gameMode === 'single') {
+                if (player.combo >= 2) {
+                    playComboSound();
+                } else {
+                    playDropSound();
+                }
+            }
+
+            updateUI();
+
+            setTimeout(() => {
+                fillNewPairAndShuffle(playerId, idx1, idx2);
+                player.selectedCell = null;
+                player.isProcessing = false;
+                checkGameEnd();
+            }, 400);
+        }
+
+        function handleMismatch(playerId, el1, el2, firstCell, secondCell) {
+            const player = players[playerId];
+
+            // 玩家2记录错题
+            if (playerId === 2) {
+                // 找出涉及的题目
+                const questionCell = firstCell.type === 'question' ? firstCell : secondCell;
+                if (questionCell && questionCell.text) {
+                    const q = questionCell.text;
+                    player2WrongQuestions[q] = (player2WrongQuestions[q] || 0) + 1;
+                }
+            }
+
+            el1.classList.remove('selected');
+            el2.classList.remove('selected');
+            el1.classList.add('wrong');
+            el2.classList.add('wrong');
+
+            player.combo = 0;
+            updateUI();
+
+            setTimeout(() => {
+                el1.classList.remove('wrong');
+                el2.classList.remove('wrong');
+                player.selectedCell = null;
+                player.isProcessing = false;
+            }, 350);
+        }
+
+        function fillNewPairAndShuffle(playerId, idx1, idx2) {
+            const player = players[playerId];
+            const pairSource = playerId === 2 ? player2RemainingPairs : remainingPairs;
+
+            if (pairSource.length > 0) {
+                const pair = pairSource.pop();
+                const pairId = Date.now() + Math.random();
+
+                player.cells[idx1] = { type: 'question', text: pair.question, pairId, answer: pair.answer };
+                player.cells[idx2] = { type: 'answer', text: String(pair.answer), pairId };
+            } else {
+                player.cells[idx1] = null;
+                player.cells[idx2] = null;
+            }
+
+            shuffleArray(player.cells);
+            renderBoard(playerId);
+        }
+
+        function updateUI() {
+            document.getElementById('score1').textContent = players[1].score;
+            const combo1 = document.getElementById('combo1');
+            combo1.textContent = players[1].combo >= 2 ? `✨${players[1].combo}连击` : '';
+
+            if (gameMode === 'single') {
+                document.getElementById('topScore').textContent = players[1].score;
+            } else {
+                document.getElementById('topScore').textContent = players[1].score + players[2].score;
+            }
+
+            if (gameMode === 'double') {
+                document.getElementById('score2').textContent = players[2].score;
+                const combo2 = document.getElementById('combo2');
+                combo2.textContent = players[2].combo >= 2 ? `✨${players[2].combo}连击` : '';
+            }
+
+            document.getElementById('timer').textContent = formatTime(gameTime);
+            document.getElementById('timer').classList.toggle('warning', gameTime <= 30);
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                gameTime--;
+                updateUI();
+                if (gameTime <= 0) {
+                    endGame('timeout');
+                }
+            }, 1000);
+        }
+
+        function checkGameEnd() {
+            const allDone = remainingPairs.length === 0 &&
+                players[1].cells.every(c => c === null) &&
+                (gameMode === 'single' || (player2RemainingPairs.length === 0 && players[2].cells.every(c => c === null)));
+
+            if (allDone) {
+                endGame('complete');
+            }
+        }
+
+        // 生成错题图表
+        function renderWrongChart() {
+            const chartArea = document.getElementById('wrongChartArea');
+
+            if (gameMode !== 'double') {
+                chartArea.innerHTML = '';
+                return;
+            }
+
+            const wrongList = Object.entries(player2WrongQuestions).sort((a, b) => b[1] - a[1]);
+
+            if (wrongList.length === 0) {
+                chartArea.innerHTML = `
+                    <div class="wrong-chart">
+                        <h3>📊 玩家2 错题统计</h3>
+                        <div class="no-wrong">🎉 太棒了！没有错题！</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const maxCount = Math.max(...wrongList.map(w => w[1]));
+
+            let barsHtml = wrongList.map(([question, count]) => {
+                const width = (count / maxCount) * 100;
+                return `
+                    <div class="chart-bar">
+                        <div class="chart-label">${question}</div>
+                        <div class="chart-bar-bg">
+                            <div class="chart-bar-fill" style="width: ${width}%">
+                                <span>${count}次</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            chartArea.innerHTML = `
+                <div class="wrong-chart">
+                    <h3>📊 玩家2 错题统计</h3>
+                    <div class="chart-container">${barsHtml}</div>
+                </div>
+            `;
+        }
+
+        function endGame(reason) {
+            if (gameEnded) return;
+            gameEnded = true;
+            clearInterval(timerInterval);
+
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const msg1 = document.getElementById('modalMsg1');
+            const msg2 = document.getElementById('modalMsg2');
+
+            if (reason === 'complete') {
+                title.textContent = '🎉 全部完成！🎉';
+            } else {
+                title.textContent = '⏰ 时间到！';
+            }
+
+            if (gameMode === 'single') {
+                msg1.textContent = `得分：${players[1].score} 分`;
+                msg2.textContent = `用时：${formatTime(180 - gameTime)}`;
+            } else {
+                msg1.textContent = `玩家1：${players[1].score} 分 | 玩家2：${players[2].score} 分`;
+                if (players[1].score > players[2].score) {
+                    msg2.textContent = '🏆 玩家1 获胜！';
+                } else if (players[2].score > players[1].score) {
+                    msg2.textContent = '🏆 玩家2 获胜！';
+                } else {
+                    msg2.textContent = '🤝 平局！';
+                }
+            }
+
+            // 渲染错题图表
+            renderWrongChart();
+
+            modal.classList.add('show');
+        }
+
+        function setMode(mode) {
+            gameMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            restartGame();
+        }
+
+        function restartGame() {
+            closeModal();
+            initGame();
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const emojis = ['☁️', '🍂', '🌿', '☕', '🍃', '💤', '🌾', '🪴'];
+            for (let i = 0; i < 20; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                p.style.left = Math.random() * 100 + '%';
+                p.style.animationDelay = Math.random() * 15 + 's';
+                p.style.animationDuration = (Math.random() * 10 + 15) + 's';
+                p.style.fontSize = (Math.random() * 12 + 16) + 'px';
+                container.appendChild(p);
+            }
+        }
+
+        createParticles();
+        initGame();
+    </script>
+</body>
+</html>

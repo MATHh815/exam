@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单认证测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>认证测试工具</h1>
+        
+        <div class="form-group">
+            <label for="username">用户名:</label>
+            <input type="text" id="username" value="admin">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">密码:</label>
+            <input type="password" id="password" value="123456">
+        </div>
+        
+        <button onclick="testRegister()">注册用户</button>
+        <button onclick="testLogin()">测试登录</button>
+        <button onclick="checkStorage()">检查存储</button>
+        <button onclick="clearStorage()">清除存储</button>
+        <button onclick="testProfile()">测试Profile</button>
+        
+        <div id="result" class="result info">点击按钮开始测试...</div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';  // 使用代理
+        
+        function log(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = `[${timestamp}] ${message}`;
+            console.log(message);
+        }
+        
+        async function testRegister() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            log('开始注册测试...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        email: `${username}@example.com`,
+                        nickname: username
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log(`注册成功！\n用户: ${data.data.user.username}\n邮箱: ${data.data.user.email}`, 'success');
+                } else {
+                    log(`注册失败: ${data.error?.message || '未知错误'}\n状态码: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`注册请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            log('开始登录测试...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // 保存认证数据
+                    localStorage.setItem('access_token', data.data.access_token);
+                    localStorage.setItem('refresh_token', data.data.refresh_token);
+                    localStorage.setItem('user', JSON.stringify(data.data.user));
+                    
+                    log(`登录成功！\n用户: ${data.data.user.username}\n角色: ${data.data.user.role}\nToken: ${data.data.access_token.substring(0, 50)}...\n\n认证数据已保存到localStorage`, 'success');
+                } else {
+                    log(`登录失败: ${data.error?.message || '未知错误'}\n状态码: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`登录请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function checkStorage() {
+            log('检查存储状态...', 'info');
+            
+            const token = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            const user = localStorage.getItem('user');
+            
+            let message = `存储状态:\n`;
+            message += `Access Token: ${token ? '存在' : '不存在'}\n`;
+            message += `Refresh Token: ${refreshToken ? '存在' : '不存在'}\n`;
+            message += `User Data: ${user ? '存在' : '不存在'}\n`;
+            
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    message += `\n用户信息:\n`;
+                    message += `- 用户名: ${userData.username}\n`;
+                    message += `- 邮箱: ${userData.email}\n`;
+                    message += `- 角色: ${userData.role}\n`;
+                    message += `- 昵称: ${userData.nickname}\n`;
+                } catch (e) {
+                    message += `\n用户信息解析失败: ${e.message}`;
+                }
+            }
+            
+            log(message, token ? 'success' : 'info');
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            log('存储已清除', 'info');
+        }
+        
+        async function testProfile() {
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                log('没有Token，请先登录', 'error');
+                return;
+            }
+            
+            log('测试获取用户信息...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log(`获取用户信息成功！\n用户: ${data.data.user.username}\n邮箱: ${data.data.user.email}\n角色: ${data.data.user.role}`, 'success');
+                } else {
+                    log(`获取用户信息失败: ${data.error?.message || '未知错误'}\n状态码: ${response.status}`, 'error');
+                    
+                    if (response.status === 401) {
+                        log('Token可能已过期，清除存储', 'error');
+                        clearStorage();
+                    }
+                }
+            } catch (error) {
+                log(`获取用户信息请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 页面加载时检查存储
+        window.onload = function() {
+            checkStorage();
+        };
+    </script>
+</body>
+</html>

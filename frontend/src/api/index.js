@@ -23,3 +23,15 @@ export * from './practice'
 
 // 导出统计相关 API
 export * from './statistics'
+
+// 导出学习计划相关 API
+export * from './studyPlans'
+
+// 导出笔记相关 API
+export * from './notes'
+
+// 导出收藏相关 API
+export * from './bookmarks'
+
+// 导出提醒相关 API
+export * from './reminders'

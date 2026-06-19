@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token刷新测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Token刷新测试</h1>
+        
+        <button onclick="testLogin()">1. 登录获取Token</button>
+        <button onclick="testProfile()">2. 测试Profile API</button>
+        <button onclick="testRefresh()">3. 手动刷新Token</button>
+        <button onclick="simulateExpiredToken()">4. 模拟过期Token</button>
+        <button onclick="clearStorage()">清除存储</button>
+        
+        <div id="result" class="result info">点击按钮开始测试...</div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        
+        function log(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = `[${timestamp}] ${message}`;
+            console.log(message);
+        }
+        
+        function appendLog(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            resultDiv.textContent += `\n[${timestamp}] ${message}`;
+            console.log(message);
+        }
+        
+        async function testLogin() {
+            log('开始登录测试...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: '123456'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    localStorage.setItem('access_token', data.data.access_token);
+                    localStorage.setItem('refresh_token', data.data.refresh_token);
+                    localStorage.setItem('user', JSON.stringify(data.data.user));
+                    
+                    log(`登录成功！\n用户: ${data.data.user.username}\nAccess Token: ${data.data.access_token.substring(0, 50)}...\nRefresh Token: ${data.data.refresh_token.substring(0, 50)}...`, 'success');
+                } else {
+                    log(`登录失败: ${data.error?.message || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                log(`登录请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testProfile() {
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                log('没有Token，请先登录', 'error');
+                return;
+            }
+            
+            log('测试Profile API...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    appendLog(`Profile API成功: ${data.data.user.username}`, 'success');
+                } else {
+                    appendLog(`Profile API失败: ${data.error?.message || '未知错误'} (状态码: ${response.status})`, 'error');
+                }
+            } catch (error) {
+                appendLog(`Profile API请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testRefresh() {
+            const refreshToken = localStorage.getItem('refresh_token');
+            
+            if (!refreshToken) {
+                log('没有Refresh Token，请先登录', 'error');
+                return;
+            }
+            
+            log('测试Token刷新...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/refresh`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${refreshToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const newAccessToken = data.data.access_token;
+                    localStorage.setItem('access_token', newAccessToken);
+                    appendLog(`Token刷新成功！\n新Token: ${newAccessToken.substring(0, 50)}...`, 'success');
+                } else {
+                    appendLog(`Token刷新失败: ${data.error?.message || '未知错误'} (状态码: ${response.status})`, 'error');
+                }
+            } catch (error) {
+                appendLog(`Token刷新请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function simulateExpiredToken() {
+            log('模拟过期Token测试...', 'info');
+            
+            // 设置一个明显过期的token
+            const expiredToken = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTYwMDAwMDAwMCwianRpIjoiZXhwaXJlZC10b2tlbiIsInR5cGUiOiJhY2Nlc3MiLCJzdWIiOjEsIm5iZiI6MTYwMDAwMDAwMCwiZXhwIjoxNjAwMDAwMDAwfQ.expired';
+            localStorage.setItem('access_token', expiredToken);
+            
+            appendLog('已设置过期Token，现在测试Profile API...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${expiredToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.status === 401) {
+                    appendLog(`收到401错误（预期）: ${data.error?.message}`, 'info');
+                    appendLog('检查是否自动刷新了token...', 'info');
+                    
+                    // 检查token是否被自动刷新
+                    const currentToken = localStorage.getItem('access_token');
+                    if (currentToken !== expiredToken) {
+                        appendLog('Token已自动刷新！', 'success');
+                    } else {
+                        appendLog('Token未自动刷新', 'error');
+                    }
+                } else {
+                    appendLog(`意外的响应: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                appendLog(`请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            log('存储已清除', 'info');
+        }
+        
+        // 页面加载时显示当前存储状态
+        window.onload = function() {
+            const token = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            const user = localStorage.getItem('user');
+            
+            let message = '当前存储状态:\n';
+            message += `Access Token: ${token ? '存在' : '不存在'}\n`;
+            message += `Refresh Token: ${refreshToken ? '存在' : '不存在'}\n`;
+            message += `User Data: ${user ? '存在' : '不存在'}`;
+            
+            log(message, 'info');
+        };
+    </script>
+</body>
+</html>

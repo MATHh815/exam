@@ -125,6 +125,14 @@ class PracticeService:
         # 更新学习统计
         PracticeService._update_statistics(user_id, is_correct, time_spent)
         
+        # 自动更新学习计划进度
+        try:
+            from app.services.study_plan_service import StudyPlanService
+            StudyPlanService.auto_update_progress_on_practice(user_id)
+        except Exception as e:
+            # 进度更新失败不影响练习提交
+            print(f"自动更新学习计划进度失败: {str(e)}")
+        
         db.session.commit()
         
         return {

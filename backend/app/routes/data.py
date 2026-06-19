@@ -21,21 +21,21 @@ def export_json():
     """
     try:
         json_data = DataService.export_to_json()
-        
+
         # 创建文件对象
         buffer = BytesIO()
         buffer.write(json_data.encode('utf-8'))
         buffer.seek(0)
-        
+
         filename = f'exam_data_export_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.json'
-        
+
         return send_file(
             buffer,
             mimetype='application/json',
             as_attachment=True,
             download_name=filename
         )
-    
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -58,21 +58,21 @@ def export_sql():
     """
     try:
         sql_data = DataService.export_to_sql()
-        
+
         # 创建文件对象
         buffer = BytesIO()
         buffer.write(sql_data.encode('utf-8'))
         buffer.seek(0)
-        
+
         filename = f'exam_data_export_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.sql'
-        
+
         return send_file(
             buffer,
             mimetype='text/plain',
             as_attachment=True,
             download_name=filename
         )
-    
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -108,9 +108,9 @@ def import_json():
                     'details': '请上传 JSON 文件'
                 }
             }), 400
-        
+
         file = request.files['file']
-        
+
         if file.filename == '':
             return jsonify({
                 'success': False,
@@ -120,16 +120,16 @@ def import_json():
                     'details': '请选择有效的文件'
                 }
             }), 400
-        
+
         # 读取文件内容
         json_data = file.read().decode('utf-8')
-        
+
         # 获取参数
         clear_existing = request.form.get('clear_existing', 'false').lower() == 'true'
-        
+
         # 导入数据
         import_stats = DataService.import_from_json(json_data, clear_existing)
-        
+
         return jsonify({
             'success': True,
             'message': '数据导入成功',
@@ -138,7 +138,7 @@ def import_json():
                 'clear_existing': clear_existing
             }
         }), 200
-    
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -173,9 +173,9 @@ def import_sql():
                     'details': '请上传 SQL 文件'
                 }
             }), 400
-        
+
         file = request.files['file']
-        
+
         if file.filename == '':
             return jsonify({
                 'success': False,
@@ -185,13 +185,13 @@ def import_sql():
                     'details': '请选择有效的文件'
                 }
             }), 400
-        
+
         # 读取文件内容
         sql_data = file.read().decode('utf-8')
-        
+
         # 导入数据
         import_stats = DataService.import_from_sql(sql_data)
-        
+
         return jsonify({
             'success': True,
             'message': '数据导入成功',
@@ -199,7 +199,7 @@ def import_sql():
                 'import_stats': import_stats
             }
         }), 200
-    
+
     except Exception as e:
         return jsonify({
             'success': False,

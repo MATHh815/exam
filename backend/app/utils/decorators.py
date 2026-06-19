@@ -18,7 +18,20 @@ def jwt_required_with_user(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         verify_jwt_in_request()
-        user_id = get_jwt_identity()
+        user_id_str = get_jwt_identity()
+        
+        # 将字符串ID转换为整数
+        try:
+            user_id = int(user_id_str)
+        except (ValueError, TypeError):
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'INVALID_USER_ID',
+                    'message': '无效的用户ID'
+                }
+            }), 400
+        
         current_user = User.query.get(user_id)
         
         if not current_user:
@@ -57,7 +70,20 @@ def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         verify_jwt_in_request()
-        user_id = get_jwt_identity()
+        user_id_str = get_jwt_identity()
+        
+        # 将字符串ID转换为整数
+        try:
+            user_id = int(user_id_str)
+        except (ValueError, TypeError):
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'INVALID_USER_ID',
+                    'message': '无效的用户ID'
+                }
+            }), 400
+        
         current_user = User.query.get(user_id)
         
         if not current_user:

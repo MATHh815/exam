@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>认证问题诊断工具</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .container {
+            background: #000;
+            padding: 20px;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 3px;
+        }
+        .section h3 {
+            color: #ffff00;
+            margin-top: 0;
+        }
+        button {
+            background: #003300;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            background: #006600;
+        }
+        .log {
+            background: #111;
+            border: 1px solid #333;
+            padding: 10px;
+            margin: 10px 0;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff0000; }
+        .warning { color: #ffaa00; }
+        .info { color: #00aaff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 认证问题诊断工具</h1>
+        
+        <div class="section">
+            <h3>1. 后端连接测试</h3>
+            <button onclick="testBackendConnection()">测试后端连接</button>
+            <button onclick="testBackendHealth()">测试健康检查</button>
+            <div id="backend-log" class="log"></div>
+        </div>
+
+        <div class="section">
+            <h3>2. 用户注册测试</h3>
+            <button onclick="registerTestUser()">注册测试用户</button>
+            <button onclick="registerAdmin()">注册管理员</button>
+            <div id="register-log" class="log"></div>
+        </div>
+
+        <div class="section">
+            <h3>3. 登录测试</h3>
+            <button onclick="testLogin('admin', '123456')">登录管理员</button>
+            <button onclick="testLogin('testuser', '123456')">登录测试用户</button>
+            <div id="login-log" class="log"></div>
+        </div>
+
+        <div class="section">
+            <h3>4. Token验证测试</h3>
+            <button onclick="testTokenValidation()">验证当前Token</button>
+            <button onclick="testTokenRefresh()">测试Token刷新</button>
+            <button onclick="testExpiredToken()">测试过期Token</button>
+            <div id="token-log" class="log"></div>
+        </div>
+
+        <div class="section">
+            <h3>5. API请求测试</h3>
+            <button onclick="testProtectedAPI()">测试受保护API</button>
+            <button onclick="testMultipleRequests()">测试连续请求</button>
+            <div id="api-log" class="log"></div>
+        </div>
+
+        <div class="section">
+            <h3>6. 存储状态</h3>
+            <button onclick="showStorageState()">显示存储状态</button>
+            <button onclick="clearAllStorage()">清除所有存储</button>
+            <div id="storage-log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            element.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            element.scrollTop = element.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        // 1. 后端连接测试
+        async function testBackendConnection() {
+            clearLog('backend-log');
+            log('backend-log', '测试后端连接...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/profile`, {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer invalid-token' }
+                });
+                
+                log('backend-log', `后端响应状态: ${response.status}`, response.status === 401 ? 'success' : 'warning');
+                
+                if (response.status === 401) {
+                    log('backend-log', '✅ 后端正常运行（正确返回401）', 'success');
+                } else {
+                    log('backend-log', '⚠️ 后端响应异常', 'warning');
+                }
+                
+                const data = await response.json();
+                log('backend-log', `响应数据: ${JSON.stringify(data, null, 2)}`, 'info');
+                
+            } catch (error) {
+                log('backend-log', `❌ 后端连接失败: ${error.message}`, 'error');
+                log('backend-log', '请确保后端服务正在运行在 http://localhost:5000', 'error');
+            }
+        }
+
+        async function testBackendHealth() {
+            log('backend-log', '测试健康检查端点...', 'info');
+            
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log('backend-log', '✅ 健康检查通过', 'success');
+                    log('backend-log', `版本: ${data.version}`, 'info');
+                } else {
+                    log('backend-log', '❌ 健康检查失败', 'error');
+                }
+            } catch (error) {
+                log('backend-log', `❌ 健康检查异常: ${error.message}`, 'error');
+            }
+        }
+
+        // 2. 用户注册测试
+        async function registerTestUser() {
+            clearLog('register-log');
+            log('register-log', '注册测试用户...', 'info');
+            
+            const userData = {
+                username: 'testuser',
+                password: '123456',
+                email: 'test@example.com',
+                nickname: '测试用户'
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log('register-log', '✅ 测试用户注册成功', 'success');
+                    log('register-log', `用户ID: ${data.data.user.id}`, 'info');
+                } else if (response.status === 400 && data.error?.message?.includes('已存在')) {
+                    log('register-log', '⚠️ 测试用户已存在', 'warning');
+                } else {
+                    log('register-log', `❌ 注册失败: ${data.error?.message}`, 'error');
+                }
+                
+                log('register-log', `完整响应: ${JSON.stringify(data, null, 2)}`, 'info');
+                
+            } catch (error) {
+                log('register-log', `❌ 注册请求异常: ${error.message}`, 'error');
+            }
+        }
+
+        async function registerAdmin() {
+            log('register-log', '注册管理员用户...', 'info');
+            
+            const adminData = {
+                username: 'admin',
+                password: '123456',
+                email: 'admin@example.com',
+                nickname: '管理员'
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(adminData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log('register-log', '✅ 管理员注册成功', 'success');
+                    
+                    // 需要手动设置为管理员角色（这里只是提示）
+                    log('register-log', '⚠️ 注意：需要在数据库中手动将用户角色设置为admin', 'warning');
+                } else if (response.status === 400 && data.error?.message?.includes('已存在')) {
+                    log('register-log', '⚠️ 管理员用户已存在', 'warning');
+                } else {
+                    log('register-log', `❌ 注册失败: ${data.error?.message}`, 'error');
+                }
+                
+            } catch (error) {
+                log('register-log', `❌ 注册请求异常: ${error.message}`, 'error');
+            }
+        }
+
+        // 3. 登录测试
+        async function testLogin(username, password) {
+            clearLog('login-log');
+            log('login-log', `测试登录: ${username}`, 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log('login-log', '✅ 登录成功', 'success');
+                    log('login-log', `用户: ${data.data.user.username}`, 'info');
+                    log('login-log', `角色: ${data.data.user.role}`, 'info');
+                    log('login-log', `Access Token: ${data.data.access_token.substring(0, 50)}...`, 'info');
+                    log('login-log', `Refresh Token: ${data.data.refresh_token.substring(0, 50)}...`, 'info');
+                    
+                    // 保存到localStorage
+                    localStorage.setItem('access_token', data.data.access_token);
+                    localStorage.setItem('refresh_token', data.data.refresh_token);
+                    localStorage.setItem('user', JSON.stringify(data.data.user));
+                    
+                    log('login-log', '✅ 认证数据已保存到localStorage', 'success');
+                    
+                } else {
+                    log('login-log', `❌ 登录失败: ${data.error?.message}`, 'error');
+                    log('login-log', `状态码: ${response.status}`, 'error');
+                }
+                
+                log('login-log', `完整响应: ${JSON.stringify(data, null, 2)}`, 'info');
+                
+            } catch (error) {
+                log('login-log', `❌ 登录请求异常: ${error.message}`, 'error');
+            }
+        }
+
+        // 4. Token验证测试
+        async function testTokenValidation() {
+            clearLog('token-log');
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                log('token-log', '❌ 没有找到access token，请先登录', 'error');
+                return;
+            }
+            
+            log('token-log', '验证当前Token...', 'info');
+            log('token-log', `Token: ${token.substring(0, 50)}...`, 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log('token-log', '✅ Token验证成功', 'success');
+                    log('token-log', `用户: ${data.data.user.username}`, 'info');
+                    log('token-log', `角色: ${data.data.user.role}`, 'info');
+                } else {
+                    log('token-log', `❌ Token验证失败: ${data.error?.message}`, 'error');
+                    log('token-log', `状态码: ${response.status}`, 'error');
+                    
+                    if (response.status === 401) {
+                        log('token-log', '⚠️ Token可能已过期', 'warning');
+                    }
+                }
+                
+            } catch (error) {
+                log('token-log', `❌ Token验证异常: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTokenRefresh() {
+            const refreshToken = localStorage.getItem('refresh_token');
+            
+            if (!refreshToken) {
+                log('token-log', '❌ 没有找到refresh token', 'error');
+                return;
+            }
+            
+            log('token-log', '测试Token刷新...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${refreshToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log('token-log', '✅ Token刷新成功', 'success');
+                    log('token-log', `新Token: ${data.data.access_token.substring(0, 50)}...`, 'info');
+                    
+                    // 更新localStorage
+                    localStorage.setItem('access_token', data.data.access_token);
+                    log('token-log', '✅ 新Token已保存', 'success');
+                    
+                } else {
+                    log('token-log', `❌ Token刷新失败: ${data.error?.message}`, 'error');
+                    log('token-log', `状态码: ${response.status}`, 'error');
+                }
+                
+            } catch (error) {
+                log('token-log', `❌ Token刷新异常: ${error.message}`, 'error');
+            }
+        }
+
+        async function testExpiredToken() {
+            log('token-log', '测试过期Token处理...', 'info');
+            
+            // 设置一个明显过期的token
+            const expiredToken = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTYwMDAwMDAwMCwianRpIjoiZXhwaXJlZC10b2tlbiIsInR5cGUiOiJhY2Nlc3MiLCJzdWIiOjEsIm5iZiI6MTYwMDAwMDAwMCwiZXhwIjoxNjAwMDAwMDAwfQ.invalid';
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/profile`, {
+                    headers: { 'Authorization': `Bearer ${expiredToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.status === 401) {
+                    log('token-log', '✅ 过期Token正确返回401', 'success');
+                    log('token-log', `错误信息: ${data.error?.message}`, 'info');
+                } else {
+                    log('token-log', `⚠️ 意外的响应状态: ${response.status}`, 'warning');
+                }
+                
+            } catch (error) {
+                log('token-log', `❌ 过期Token测试异常: ${error.message}`, 'error');
+            }
+        }
+
+        // 5. API请求测试
+        async function testProtectedAPI() {
+            clearLog('api-log');
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                log('api-log', '❌ 没有Token，请先登录', 'error');
+                return;
+            }
+            
+            log('api-log', '测试受保护的API...', 'info');
+            
+            const apis = [
+                '/auth/profile',
+                '/statistics/overview',
+                '/practice/history',
+                '/exams/papers'
+            ];
+            
+            for (const api of apis) {
+                try {
+                    log('api-log', `测试: ${api}`, 'info');
+                    
+                    const response = await fetch(`${API_BASE}${api}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (response.ok) {
+                        log('api-log', `✅ ${api} - 成功 (${response.status})`, 'success');
+                    } else {
+                        log('api-log', `❌ ${api} - 失败 (${response.status})`, 'error');
+                        
+                        const data = await response.json();
+                        log('api-log', `错误: ${data.error?.message}`, 'error');
+                    }
+                    
+                } catch (error) {
+                    log('api-log', `❌ ${api} - 异常: ${error.message}`, 'error');
+                }
+                
+                // 短暂延迟
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
+        async function testMultipleRequests() {
+            log('api-log', '测试连续多个请求...', 'info');
+            
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                log('api-log', '❌ 没有Token，请先登录', 'error');
+                return;
+            }
+            
+            const promises = [];
+            for (let i = 0; i < 5; i++) {
+                promises.push(
+                    fetch(`${API_BASE}/auth/profile`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                );
+            }
+            
+            try {
+                const responses = await Promise.all(promises);
+                let successCount = 0;
+                let failCount = 0;
+                
+                responses.forEach((response, index) => {
+                    if (response.ok) {
+                        successCount++;
+                        log('api-log', `✅ 请求${index + 1}: 成功`, 'success');
+                    } else {
+                        failCount++;
+                        log('api-log', `❌ 请求${index + 1}: 失败 (${response.status})`, 'error');
+                    }
+                });
+                
+                log('api-log', `总结: ${successCount}成功, ${failCount}失败`, successCount === 5 ? 'success' : 'warning');
+                
+            } catch (error) {
+                log('api-log', `❌ 连续请求异常: ${error.message}`, 'error');
+            }
+        }
+
+        // 6. 存储状态
+        function showStorageState() {
+            clearLog('storage-log');
+            log('storage-log', '当前存储状态:', 'info');
+            
+            const token = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            const user = localStorage.getItem('user');
+            
+            log('storage-log', `Access Token: ${token ? '存在' : '不存在'}`, token ? 'success' : 'warning');
+            if (token) {
+                log('storage-log', `  长度: ${token.length}`, 'info');
+                log('storage-log', `  前50字符: ${token.substring(0, 50)}...`, 'info');
+            }
+            
+            log('storage-log', `Refresh Token: ${refreshToken ? '存在' : '不存在'}`, refreshToken ? 'success' : 'warning');
+            if (refreshToken) {
+                log('storage-log', `  长度: ${refreshToken.length}`, 'info');
+                log('storage-log', `  前50字符: ${refreshToken.substring(0, 50)}...`, 'info');
+            }
+            
+            log('storage-log', `User Data: ${user ? '存在' : '不存在'}`, user ? 'success' : 'warning');
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    log('storage-log', `  用户名: ${userData.username}`, 'info');
+                    log('storage-log', `  角色: ${userData.role}`, 'info');
+                    log('storage-log', `  邮箱: ${userData.email}`, 'info');
+                } catch (e) {
+                    log('storage-log', `  ❌ 用户数据解析失败: ${e.message}`, 'error');
+                }
+            }
+        }
+
+        function clearAllStorage() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            log('storage-log', '✅ 所有存储数据已清除', 'success');
+        }
+
+        // 页面加载时显示存储状态
+        window.onload = function() {
+            showStorageState();
+        };
+    </script>
+</body>
+</html>

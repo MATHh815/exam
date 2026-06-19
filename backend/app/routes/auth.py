@@ -220,8 +220,9 @@ def refresh():
         }
     """
     try:
-        user_id = get_jwt_identity()
-        access_token = create_access_token(identity=user_id)
+        user_id_str = get_jwt_identity()
+        # identity已经是字符串，直接使用
+        access_token = create_access_token(identity=user_id_str)
         
         return jsonify({
             'success': True,

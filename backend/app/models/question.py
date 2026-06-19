@@ -18,7 +18,7 @@ class Question(db.Model):
     question_type = db.Column(db.String(50), nullable=False, index=True)  # single_choice, multiple_choice, true_false, fill_blank, essay
     subject = db.Column(db.String(100), index=True)  # 科目：行测、申论、数学、英语等
     chapter = db.Column(db.String(100), index=True)  # 章节
-    difficulty = db.Column(db.Integer, default=3)  # 难度：1-5
+    difficulty = db.Column(db.Integer, default=3, index=True)  # 难度：1-5
     
     # 题目内容
     content = db.Column(db.Text, nullable=False)  # 题目内容

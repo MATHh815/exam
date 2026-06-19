@@ -232,6 +232,15 @@ class ExamService:
         )
         
         db.session.add(result)
+        
+        # 自动更新学习计划进度
+        try:
+            from app.services.study_plan_service import StudyPlanService
+            StudyPlanService.auto_update_progress_on_exam(session.user_id)
+        except Exception as e:
+            # 进度更新失败不影响考试提交
+            print(f"自动更新学习计划进度失败: {str(e)}")
+        
         db.session.commit()
         
         return result

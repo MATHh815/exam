@@ -47,6 +47,5 @@ def test():
 if __name__ == '__main__':
     # 禁用 reloader 以避免 watchdog 版本冲突问题
     # 如果需要自动重载，请升级 watchdog: pip install --upgrade watchdog
-    # Docker环境下监听所有接口
-    host = '0.0.0.0' if os.getenv('DOCKER_ENV') else '127.0.0.1'
-    app.run(host=host, port=5000, debug=True, use_reloader=False)
+    # 监听所有接口，允许局域网访问
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)

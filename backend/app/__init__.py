@@ -179,7 +179,9 @@ def register_blueprints(app):
                 'exams': '/api/exams',
                 'statistics': '/api/statistics',
                 'data': '/api/data',
-                'graduate': '/api/graduate'
+                'graduate': '/api/graduate',
+                'study_plans': '/api/study-plans',
+                'reminders': '/api/reminders'
             }
         })
     
@@ -191,6 +193,18 @@ def register_blueprints(app):
     from app.routes.statistics import statistics_bp
     from app.routes.data import data_bp
     from app.routes.graduate import graduate_bp
+    from app.routes.study_plans import study_plans_bp
+    from app.routes.reminders import reminders_bp
+    from app.routes.notes import notes_bp
+    from app.routes.bookmarks import bookmarks_bp
+    from app.routes.export import export_bp
+    from app.routes.points import points_bp
+    from app.routes.achievements import achievements_bp
+    from app.routes.daily_tasks import daily_tasks_bp
+    # from app.routes.wrong_analysis import wrong_analysis_bp  # 暂时注释，修复导入问题
+    from app.routes.pomodoro import pomodoro_bp
+    # from app.routes.knowledge_graph import knowledge_graph_bp  # 暂时注释，缺少 KnowledgePoint 模型
+    from app.routes.study_schedules import study_schedules_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(questions_bp, url_prefix='/api/questions')
@@ -199,6 +213,18 @@ def register_blueprints(app):
     app.register_blueprint(statistics_bp, url_prefix='/api/statistics')
     app.register_blueprint(data_bp, url_prefix='/api/data')
     app.register_blueprint(graduate_bp, url_prefix='/api/graduate')
+    app.register_blueprint(study_plans_bp, url_prefix='/api/study-plans')
+    app.register_blueprint(reminders_bp)
+    app.register_blueprint(notes_bp, url_prefix='/api/notes')
+    app.register_blueprint(bookmarks_bp, url_prefix='/api/bookmarks')
+    app.register_blueprint(export_bp)  # export_bp 已经包含 url_prefix
+    app.register_blueprint(points_bp)  # points_bp 已经包含 url_prefix
+    app.register_blueprint(achievements_bp)  # achievements_bp 已经包含 url_prefix
+    app.register_blueprint(daily_tasks_bp)  # daily_tasks_bp 已经包含 url_prefix
+    # app.register_blueprint(wrong_analysis_bp)  # 暂时注释，修复导入问题
+    app.register_blueprint(pomodoro_bp)  # pomodoro_bp 已经包含 url_prefix
+    # app.register_blueprint(knowledge_graph_bp)  # 暂时注释，缺少 KnowledgePoint 模型
+    app.register_blueprint(study_schedules_bp, url_prefix='/api/study-schedules')
 
 
 def register_error_handlers(app):

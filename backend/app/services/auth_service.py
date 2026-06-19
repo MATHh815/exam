@@ -73,9 +73,9 @@ class AuthService:
         if not user.is_active:
             raise ValueError('账户已被禁用')
         
-        # 生成令牌
-        access_token = create_access_token(identity=user.id)
-        refresh_token = create_refresh_token(identity=user.id)
+        # 生成令牌 - 确保identity是字符串
+        access_token = create_access_token(identity=str(user.id))
+        refresh_token = create_refresh_token(identity=str(user.id))
         
         return user, access_token, refresh_token
     

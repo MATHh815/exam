@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语词汇练习</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .progress {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            color: #666;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .question-text {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .options {
+            display: grid;
+            gap: 15px;
+        }
+
+        .option {
+            background: white;
+            border: 2px solid #e0e0e0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.1em;
+        }
+
+        .option:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .option.correct {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .option.wrong {
+            background: #f44336;
+            color: white;
+            border-color: #f44336;
+        }
+
+        .option.disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .feedback {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            display: none;
+        }
+
+        .feedback.correct {
+            background: #e8f5e9;
+            color: #2e7d32;
+            display: block;
+        }
+
+        .feedback.wrong {
+            background: #ffebee;
+            color: #c62828;
+            display: block;
+        }
+
+        .next-btn {
+            display: none;
+            margin: 20px auto 0;
+            padding: 15px 40px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .next-btn:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+
+        .next-btn.show {
+            display: block;
+        }
+
+        .score {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .final-score {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .final-score h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .final-score p {
+            font-size: 1.5em;
+            margin: 10px 0;
+        }
+
+        .restart-btn {
+            margin-top: 30px;
+            padding: 15px 40px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 英语词汇练习</h1>
+
+        <div id="quiz-container">
+            <div class="progress">
+                题目 <span id="current">1</span> / <span id="total">40</span>
+            </div>
+
+            <div class="score">
+                得分: <span id="score">0</span>
+            </div>
+
+            <div class="question-card">
+                <div class="question-text" id="question"></div>
+                <div class="options" id="options"></div>
+                <div class="feedback" id="feedback"></div>
+                <button class="next-btn" id="next-btn">下一题 →</button>
+            </div>
+        </div>
+
+        <div class="final-score" id="final-score">
+            <h2>🎉 完成！</h2>
+            <p>你的最终得分：<span id="final-score-value"></span> / 40</p>
+            <p id="final-message"></p>
+            <button class="restart-btn" onclick="location.reload()">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                question: "She said exactly what she thought, without thinking about the ___. 她直言不讳，没有考虑后果",
+                answer: "consequence",
+                meaning: "结果；后果"
+            },
+            {
+                question: "In general, shyness is a personality ___ that is partly biological and partly environmental. 一般来说，害羞是一种性格特征",
+                answer: "trait",
+                meaning: "特征；特点"
+            },
+            {
+                question: "International travel has grown to the point that many hotels find it necessary to employ ___ staff members. 国际旅游日益发展，以至于许多酒店认为有必要聘用多语言员工",
+                answer: "multilingual",
+                meaning: "使用多种语言的"
+            },
+            {
+                question: "I can only ___ the uncommon behavior of the strangers I meet to my being a foreigner. 我只能将其归咎于我是个外国人",
+                answer: "ascribe",
+                meaning: "把…归因于"
+            },
+            {
+                question: "I have ___ my social media contacts into family, close friends, and work colleagues. 我已经将我的社交媒体联系人分类",
+                answer: "categorize",
+                meaning: "将…分类"
+            },
+            {
+                question: "The city hopes historic districts will ___ a sense of community. 这座城市希望历史街区能够培养一种社区意识",
+                answer: "foster",
+                meaning: "培养；促进"
+            },
+            {
+                question: "Laughing at the same joke would help us to show ___ with others. 对同一个笑话开怀大笑有助于表达我们与他人的亲密关系",
+                answer: "affiliation",
+                meaning: "联系；从属关系"
+            },
+            {
+                question: "Once you graduate from school, you'll start to feel fierce ___ as you compete for a good job. 你会开始感受到激烈的竞争",
+                answer: "rivalry",
+                meaning: "竞争；对抗"
+            },
+            {
+                question: "Traditional Japanese ideas of beauty contain ___ that may seem quite foreign to Westerners. 日本传统的审美观念包含了一些理念",
+                answer: "notion",
+                meaning: "观念；概念"
+            },
+            {
+                question: "Chinese landscape paintings are not the kind of art that merely ___ nature. 中国的山水画并不是单纯模仿自然的艺术",
+                answer: "imitate",
+                meaning: "模仿"
+            },
+            {
+                question: "We have fully described this historical ___ of Japanese art here. 我们在此详尽地描述了这一日本艺术史上的事件",
+                answer: "incident",
+                meaning: "事件；事变"
+            },
+            {
+                question: "One of the traditional Chinese values is ___, referring to the quality of being humble. 谦逊是中华传统价值观之一",
+                answer: "humility",
+                meaning: "谦逊；谦卑"
+            },
+            {
+                question: "Discovered an obvious design ___, his new work has been ridiculed by people. 他的新作品因被发现存在明显的设计缺陷而遭到嘲笑",
+                answer: "flaw",
+                meaning: "缺点；瑕疵"
+            },
+            {
+                question: "More than 2,000 years ago, Lu Ban, the most famous ___ of China, solved many architectural problems. 中国最著名的工匠鲁班",
+                answer: "craftsman",
+                meaning: "工匠；手艺人"
+            },
+            {
+                question: "We designed houses, combining a modern ___ with a high level of sustainability. 将现代美学与高度的可持续性融为一体",
+                answer: "aesthetic",
+                meaning: "美学的；审美的"
+            },
+            {
+                question: "Some social media companies are ___ attracting users to their products for financial gain. 一些社交媒体公司故意吸引用户",
+                answer: "deliberately",
+                meaning: "故意地；蓄意地"
+            },
+            {
+                question: "The following standard operating ___ must be followed by all laboratory workers. 所有实验室工作人员都必须遵循以下标准操作规程",
+                answer: "procedure",
+                meaning: "程序；步骤"
+            },
+            {
+                question: "Current literature provides adequate ___ that intensive lifestyle modifications could lower the incidence of diabetes. 现有文献提供了充分的证据",
+                answer: "evidence",
+                meaning: "证据"
+            },
+            {
+                question: "In the hospital, every patient is potentially at risk of acquiring and ___ infectious diseases. 每位患者都可能将传染病传染给其他人",
+                answer: "transmit",
+                meaning: "传输；传播"
+            },
+            {
+                question: "Immunization provides the chief defense for children to ___ the deadly diseases. 免疫接种是儿童得以生存的主要防线",
+                answer: "survive",
+                meaning: "生存；存活"
+            },
+            {
+                question: "People may be infected by touching something ___ by the COVID-19 virus. 人们可能会因为触碰了被新冠病毒污染的物体而受到感染",
+                answer: "contaminate",
+                meaning: "污染；弄脏"
+            },
+            {
+                question: "Experts across the globe predict that there will be another viral ___. 全球专家预测，另一次病毒大流行迟早会到来",
+                answer: "pandemic",
+                meaning: "流行病；大流行病"
+            },
+            {
+                question: "The government has launched programs to ___ knowledge about the recent pandemic outbreak. 政府已经发起了活动来传播知识",
+                answer: "propagate",
+                meaning: "传播；繁殖"
+            },
+            {
+                question: "Obesity occurs when too much fat is ___ in the body. 由于体内脂肪过度堆积，从而引起肥胖",
+                answer: "deposit",
+                meaning: "存放；沉积"
+            },
+            {
+                question: "If we can embrace cultural ___ when interacting with others, we will build bridges across cultures. 如果我们能拥抱文化多样性",
+                answer: "diversity",
+                meaning: "多样性"
+            },
+            {
+                question: "No language is ___ to another. All languages are equal. 没有哪种语言比另一种更优越",
+                answer: "superior",
+                meaning: "更好的；更优越的"
+            },
+            {
+                question: "The world has experienced dramatic ___ in recent decades. 世界经历了快速的城市化进程",
+                answer: "urbanization",
+                meaning: "城市化"
+            },
+            {
+                question: "___ languages need to be protected in order to survive in the process of globalization. 少数民族语言需要得到保护",
+                answer: "minority",
+                meaning: "少数"
+            },
+            {
+                question: "The desire to solve problems innovatively is the hallmark of a passionate and ___ scientist. 充满热情且专注的科学家",
+                answer: "dedicated",
+                meaning: "专注、投入"
+            },
+            {
+                question: "The most effective way to protect a language is to ___ it a special status. 保护一种语言最有效的方法是赋予它特殊的地位",
+                answer: "grant",
+                meaning: "给予"
+            },
+            {
+                question: "___ affects many decisions. The majority of businessmen are focused on economic success. 商业影响着许多决策",
+                answer: "commerce",
+                meaning: "商业贸易"
+            },
+            {
+                question: "The ___ of animals can be improved. 可以改善动物的分布状况",
+                answer: "distribution",
+                meaning: "分配；发布"
+            },
+            {
+                question: "The government has introduced a(n) ___ to fight against tax avoidance. 政府推出了一项倡议",
+                answer: "initiative",
+                meaning: "倡议；主动性"
+            },
+            {
+                question: "___ organizations should be responsible for the behavior of their employees. 企业应对员工的行为负责",
+                answer: "corporate",
+                meaning: "公司的；法人的"
+            },
+            {
+                question: "This ___ aims to improve business ethics. 该机构旨在改善商业道德",
+                answer: "institute",
+                meaning: "机构；协会"
+            },
+            {
+                question: "In an ideal situation, no one would do anything ___. 在理想状态下，不会有人做任何非法之事",
+                answer: "illegal",
+                meaning: "非法的"
+            },
+            {
+                question: "___ it is up to the individual to decide what is right and wrong. 归根结底，判断是非是个人自己的事",
+                answer: "ultimately",
+                meaning: "最终；根本上"
+            },
+            {
+                question: "This report discusses the policies to improve the ___ of childcare facilities. 本报告探讨了改善儿童保育设施供给的政策",
+                answer: "provision",
+                meaning: "供应；条款"
+            },
+            {
+                question: "The curbs on big companies suggest their ___ of responsibility may be coming to an end. 它们逃避责任的行为可能即将终结",
+                answer: "evasion",
+                meaning: "逃避；规避"
+            },
+            {
+                question: "Generally, a parent or guardian is regarded as the personal ___ of the minor child. 父母或监护人被视为该未成年人的个人代理人",
+                answer: "representative",
+                meaning: "代表；典型的"
+            }
+        ];
+
+        // 创建答案池
+        const answerPool = questions.map(q => q.answer);
+
+        let currentQuestion = 0;
+        let score = 0;
+        let answered = false;
+
+        // 洗牌函数
+        function shuffle(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // 生成选项
+        function generateOptions(correctAnswer) {
+            const options = [correctAnswer];
+            const otherAnswers = answerPool.filter(a => a !== correctAnswer);
+            const shuffled = shuffle(otherAnswers);
+
+            // 随机选择3个错误答案
+            for (let i = 0; i < 3 && i < shuffled.length; i++) {
+                options.push(shuffled[i]);
+            }
+
+            return shuffle(options);
+        }
+
+        // 显示题目
+        function showQuestion() {
+            if (currentQuestion >= questions.length) {
+                showFinalScore();
+                return;
+            }
+
+            answered = false;
+            const q = questions[currentQuestion];
+
+            document.getElementById('current').textContent = currentQuestion + 1;
+            document.getElementById('total').textContent = questions.length;
+            document.getElementById('question').textContent = q.question;
+            document.getElementById('feedback').className = 'feedback';
+            document.getElementById('next-btn').classList.remove('show');
+
+            const options = generateOptions(q.answer);
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+
+            options.forEach(option => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => checkAnswer(option, q.answer);
+                optionsContainer.appendChild(optionDiv);
+            });
+        }
+
+        // 检查答案
+        function checkAnswer(selected, correct) {
+            if (answered) return;
+            answered = true;
+
+            const optionDivs = document.querySelectorAll('.option');
+            const feedback = document.getElementById('feedback');
+
+            optionDivs.forEach(div => {
+                div.classList.add('disabled');
+                if (div.textContent === correct) {
+                    div.classList.add('correct');
+                }
+                if (div.textContent === selected && selected !== correct) {
+                    div.classList.add('wrong');
+                }
+            });
+
+            if (selected === correct) {
+                score++;
+                document.getElementById('score').textContent = score;
+                feedback.className = 'feedback correct';
+                feedback.textContent = '✨ 正确！真棒！';
+            } else {
+                feedback.className = 'feedback wrong';
+                feedback.textContent = '🐶 臭小狗选错啦 哈哈哈';
+            }
+
+            document.getElementById('next-btn').classList.add('show');
+        }
+
+        // 下一题
+        document.getElementById('next-btn').onclick = () => {
+            currentQuestion++;
+            showQuestion();
+        };
+
+        // 显示最终得分
+        function showFinalScore() {
+            document.getElementById('quiz-container').style.display = 'none';
+            const finalScore = document.getElementById('final-score');
+            finalScore.style.display = 'block';
+
+            document.getElementById('final-score-value').textContent = score;
+
+            const percentage = (score / questions.length) * 100;
+            let message = '';
+
+            if (percentage === 100) {
+                message = '🏆 完美！你是词汇大师！';
+            } else if (percentage >= 90) {
+                message = '🌟 优秀！继续保持！';
+            } else if (percentage >= 80) {
+                message = '👍 很好！再接再厉！';
+            } else if (percentage >= 70) {
+                message = '💪 不错！继续努力！';
+            } else if (percentage >= 60) {
+                message = '📚 还需要多练习哦！';
+            } else {
+                message = '🐶 臭小狗要加油啦！';
+            }
+
+            document.getElementById('final-message').textContent = message;
+        }
+
+        // 初始化
+        showQuestion();
+    </script>
+</body>
+</html>
